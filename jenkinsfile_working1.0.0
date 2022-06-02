@@ -1,0 +1,42 @@
+pipeline {
+    agent any
+
+    tools{
+      maven "mymaven3"
+    }
+    
+    stages {
+        stage('Checkout source code') {
+            steps{
+              echo 'Hello World'
+              checkout([$class: 'GitSCM', branches: [[name: '*/master']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/pjitss/tomcat8.git']]])
+			  sh "mvn -Dmaven.test.failure.ignore=true clean package"
+            }
+        }
+        stage('SonarQube Analysis') {
+          steps{
+              withSonarQubeEnv(installationName: 'sonarqube') {
+                sh "mvn -e clean install sonar:sonar"
+              }
+          }
+        }
+        stage("Quality Gate") {
+            steps {
+              timeout(time: 1, unit: 'HOURS') {
+                waitForQualityGate abortPipeline: true
+              }
+            }
+          }
+        stage('Deploy to UAT') {
+            steps {
+              deploy adapters: [tomcat9(credentialsId: 'tomcatuat', path: '', url: 'http://192.168.1.30:8080/')], contextPath: 'sonar1', war: '**/*.war'
+            }
+        }
+        stage('Deploy to Prod') {
+            steps {
+                    input 'Do you want to proceed this in Prod'
+                   deploy adapters: [tomcat9(credentialsId: 'tomcatuat', path: '', url: 'http://192.168.1.31:8080/')], contextPath: 'sonarprod', war: '**/*.war'
+            }
+        }
+    }
+}

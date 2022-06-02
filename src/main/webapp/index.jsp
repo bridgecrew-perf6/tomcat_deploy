@@ -4,7 +4,7 @@
 <title>Hello Prajeet!</title>
 </head>
 <body>
-	<h1>Hello working on nexuspull from nexrepoitory</h1>
+	<h1>Hello Prajeet, that is nice!</h1>
 	<p>
 		It is now
 		<%= new java.util.Date() %></p>
