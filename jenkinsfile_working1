@@ -1,0 +1,44 @@
+pipeline {
+    agent any
+    tools{
+      maven "mymaven3"
+    }
+	environment {
+		MAJOR_VERSION = "1.0"
+	    MINOR_VERSION = "5"
+	    SPRINT_NUMBER = "15"
+	    BUILD_VERSION = "${env.MAJOR_VERSION}.${env.MINOR_VERSION}.${env.SPRINT_NUMBER}"
+		SOURCE_CODE   = "https://github.com/pjitss/mvndeploy.git"
+		NEXUS_URL     = "192.168.1.34:8081"
+	
+	}
+ 
+    stages {
+        stage('Checkout source code') {
+            steps{
+              echo 'Hello World'
+              checkout([$class: 'GitSCM', branches: [[name: '*/master']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/pjitss/tomcat7.git']]])
+			  sh "mvn -Dmaven.test.failure.ignore=true clean package"
+            }
+        }
+        stage('SonarQube Analysis') {
+          steps{
+              withSonarQubeEnv(installationName: 'sonarqube') {
+                sh "mvn -e clean install sonar:sonar"
+              }
+          }
+        }
+        stage("Quality Gate") {
+            steps {
+              timeout(time: 1, unit: 'HOURS') {
+                waitForQualityGate abortPipeline: true
+              }
+            }
+          }
+		stage("Publish to Nexus Repository Manager") {
+            steps {
+               nexusArtifactUploader artifacts: [[artifactId: 'hello-world-war', classifier: '', file: 'target/hello-world-war-1.0.2.war', type: 'war']], credentialsId: 'nx', groupId: 'com.efsavage', nexusUrl: '192.168.1.34:8081', nexusVersion: 'nexus3', protocol: 'http', repository: 'maven-repository', version: '1.0.2' 
+                }
+            }
+		}
+    }
