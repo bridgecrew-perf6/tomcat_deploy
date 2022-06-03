@@ -22,7 +22,6 @@ pipeline {
             steps{
               echo 'Hello World'
               checkout([$class: 'GitSCM', branches: [[name: '*/master']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/pjitss/tomcat7.git']]])
-			  sh 'warvers=$(grep -A 1 hello-world-war pom.xml | grep version | cut -d "<"  -f2 | cut -d ">" -f2)'
                           sh "mvn -Dmaven.test.failure.ignore=true clean package"
             }
         }
